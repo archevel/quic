@@ -1,4 +1,7 @@
 # -*- mode: gitignore; -*-
+
+quic
+
 *~
 \#*\#
 /.emacs.desktop
