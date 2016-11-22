@@ -1,3 +1,13 @@
+# -*- mode: gitignore; -*-
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
 # Object files
 *.o
 *.ko
@@ -31,3 +41,4 @@
 # Debug files
 *.dSYM/
 *.su
+
