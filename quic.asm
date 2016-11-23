@@ -12,8 +12,9 @@
 	CLONE_NEWIPC equ 0x08000000
 	CLONE_NEWPID equ 0x20000000	
 	CLONE_NEWNET equ 0x40000000
+	SIGCHLD equ 17
 
-	CLONE_FLAGS equ CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWIPC | CLONE_NEWPID 
+	CLONE_FLAGS equ CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWIPC | CLONE_NEWPID | SIGCHLD
 
 	PPID equ 1
 	OK_EXIT equ 0	
@@ -34,11 +35,12 @@ _start:
     	cmp rax, 0
     	je _clone	
 
+
 	mov r11, 0
 
 _wait_for_child:
 	
-    	mov rdi, PPID		
+	mov rdi, PPID
     	mov rsi, r15		; use saved child pid in wait
     	mov rdx, 0		; TODO: should be pointer to a siginfo_t struct
      	mov r10, 4		; wait for exited children
@@ -65,10 +67,24 @@ _clone:
      	mov rax, SYS_EXECVE
     	mov rdi, [rsp + 16]
     	lea rsi, [rsp + 16]
-    	lea rdx, [rsp + 40]
+	lea rdx, [rsp + 40]
     	syscall
 
 _exit:
     	mov rax, SYS_EXIT
     	syscall
 
+;; 	EXPECTED_ARG_COUNT equ 3
+;;	BAD_ARGS_EXIT equ 1
+;; 	mov rax, [rsp]
+;; 	cmp rax, EXPECTED_ARG_COUNT
+;; ;; jne _err_bad_args
+;; _err_bad_args:
+;; 	mov rax, SYS_WRITE
+;; 	mov rdi, STDERR
+;; 	mov rsi, bad_args
+;; 	mov rdx, bad_args_len
+;; 	syscall
+
+;; 	mov rdi, rax  ;; BAD_ARGS_EXIT
+;; 	jmp _exit
