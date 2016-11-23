@@ -92,11 +92,19 @@ _clone:
 	cmp rax, 0
 	jne _exit
 
+
+	
 	mov rax, SYS_EXECVE
 	mov rdi, [rsp + 24]
 	lea rsi, [rsp + 24]
-	lea rdx, [rsp + 40]
-    	syscall
+
+	mov rdx, [rsp] 		; calculate address to environment array
+	imul rdx, 8
+	add rdx, rsp
+	add rdx, 16
+	lea rdx, [rdx]		; load environment array address
+	
+	syscall
 
 _exit:
     	mov rax, SYS_EXIT
