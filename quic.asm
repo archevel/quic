@@ -9,6 +9,7 @@
 	SYS_KILL equ 62
 	SYS_CHROOT equ 161
 	SYS_CHDIR equ 80
+	SYS_MOUNT equ 165
 
 	CLONE_NEWNS equ 0x00020000
 	CLONE_NEWUTS equ 0x04000000
@@ -28,6 +29,7 @@ section .data
 	bad_args db "Bad arguments.", 10, "Usage: quic <container-rootfs> <executable-in-container> [args...]", 10, 0
 	bad_args_len equ $ - bad_args
 	root db "/", 0
+	proc db "proc", 0
 	
 section .text
 global _start
@@ -92,7 +94,17 @@ _clone:
 	cmp rax, 0
 	jne _exit
 
+	mov rax, SYS_MOUNT
+	mov rdi, proc
+	mov rsi, proc
+	mov rdx, proc
+	mov r10, 0
+	mov r8, 0
+	syscall
 
+	mov rdi, rax
+	cmp rax, 0
+	jne _exit
 	
 	mov rax, SYS_EXECVE
 	mov rdi, [rsp + 24]
