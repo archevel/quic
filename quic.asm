@@ -6,6 +6,7 @@
 	SYS_CLONE equ 56
 	SYS_EXECVE equ 59
 	SYS_WAITID equ 247
+	SYS_KILL equ 62
 
 	CLONE_NEWNS equ 0x00020000
 	CLONE_NEWUTS equ 0x04000000
@@ -29,17 +30,13 @@ _start:
     	mov rdx, 0
     	mov r10, 0
     	syscall
-
-	mov r15, rax		; save child pid
 	
     	cmp rax, 0
-    	je _clone	
+	je _clone
 
-
-	mov r11, 0
+	mov r15, rax		; save cloned pid
 
 _wait_for_child:
-	
 	mov rdi, PPID
     	mov rsi, r15		; use saved child pid in wait
     	mov rdx, 0		; TODO: should be pointer to a siginfo_t struct
@@ -48,21 +45,23 @@ _wait_for_child:
     	syscall
 
 	cmp rax, 0
-	je _ok_exit
+	jne _bad_exit
 
-	inc r11 		;call to waitid failed, try again 5 times
-	cmp r11, 5
-	je _bad_exit
-	jmp _wait_for_child	
-	
 _ok_exit:	
     	mov rdi, OK_EXIT
     	jmp _exit
 
 _bad_exit:
-	mov rdi, rax
-	jmp _exit
+	mov r14, rax		; Save bad exit code
+
+	mov rax, SYS_KILL	; Attempt to kill clone
+	mov rdi, r15		; clone pid
+	mov rsi, 9 		; not sure if value matters...
+	syscall
 	
+	mov rdi, r14
+	jmp _exit
+
 _clone:
      	mov rax, SYS_EXECVE
     	mov rdi, [rsp + 16]
