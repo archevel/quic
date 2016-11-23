@@ -20,15 +20,23 @@
 	CLONE_FLAGS equ CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWIPC | CLONE_NEWPID | SIGCHLD
 
 	PPID equ 1
-	OK_EXIT equ 0	
+	OK_EXIT equ 0
+	EXPECTED_MIN_ARG_COUNT equ 3
+	BAD_ARGS_EXIT equ 1
 
 section .data
+	bad_args db "Bad arguments.", 10, "Usage: quic <container-rootfs> <executable-in-container> [args...]", 10, 0
+	bad_args_len equ $ - bad_args
 	root db "/", 0
 	
 section .text
 global _start
 
-_start:	
+_start:
+	mov rax, [rsp]
+	cmp rax, EXPECTED_MIN_ARG_COUNT
+	jl _err_bad_args
+
     	mov rax, SYS_CLONE
     	mov rdi, CLONE_FLAGS
     	mov rsi, rsp
@@ -94,17 +102,12 @@ _exit:
     	mov rax, SYS_EXIT
     	syscall
 
-;; 	EXPECTED_ARG_COUNT equ 3
-;;	BAD_ARGS_EXIT equ 1
-;; 	mov rax, [rsp]
-;; 	cmp rax, EXPECTED_ARG_COUNT
-;; ;; jne _err_bad_args
-;; _err_bad_args:
-;; 	mov rax, SYS_WRITE
-;; 	mov rdi, STDERR
-;; 	mov rsi, bad_args
-;; 	mov rdx, bad_args_len
-;; 	syscall
+_err_bad_args:
+	mov rax, SYS_WRITE
+	mov rdi, STDERR
+	mov rsi, bad_args
+	mov rdx, bad_args_len
+	syscall
 
-;; 	mov rdi, rax  ;; BAD_ARGS_EXIT
-;; 	jmp _exit
+	mov rdi, BAD_ARGS_EXIT
+	jmp _exit
