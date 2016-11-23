@@ -7,6 +7,8 @@
 	SYS_EXECVE equ 59
 	SYS_WAITID equ 247
 	SYS_KILL equ 62
+	SYS_CHROOT equ 161
+	SYS_CHDIR equ 80
 
 	CLONE_NEWNS equ 0x00020000
 	CLONE_NEWUTS equ 0x04000000
@@ -19,6 +21,9 @@
 
 	PPID equ 1
 	OK_EXIT equ 0	
+
+section .data
+	root db "/", 0
 	
 section .text
 global _start
@@ -63,9 +68,25 @@ _bad_exit:
 	jmp _exit
 
 _clone:
-     	mov rax, SYS_EXECVE
-    	mov rdi, [rsp + 16]
-    	lea rsi, [rsp + 16]
+	mov rax, SYS_CHROOT
+	mov rdi, [rsp + 16]
+	syscall
+
+	mov rdi, rax
+	cmp rax, 0
+	jne _exit
+
+	mov rax, SYS_CHDIR
+	mov rdi, root
+	syscall
+
+	mov rdi, rax
+	cmp rax, 0
+	jne _exit
+
+	mov rax, SYS_EXECVE
+	mov rdi, [rsp + 24]
+	lea rsi, [rsp + 24]
 	lea rdx, [rsp + 40]
     	syscall
 
