@@ -10,6 +10,8 @@
 	SYS_CHROOT equ 161
 	SYS_CHDIR equ 80
 	SYS_MOUNT equ 165
+	SYS_OPEN equ 2
+	SYS_SETNS equ 308
 
 	CLONE_NEWNS equ 0x00020000
 	CLONE_NEWUTS equ 0x04000000
@@ -22,14 +24,19 @@
 
 	PPID equ 1
 	OK_EXIT equ 0
-	EXPECTED_MIN_ARG_COUNT equ 3
+	EXPECTED_MIN_ARG_COUNT equ 4
 	BAD_ARGS_EXIT equ 1
+	MS_BIND equ 4096
+	;; Null terminated string "host" shifted left
+	;; to be easily compared to first arg
+	HOST_CHECK equ 0x0074736f68000000
 
 section .data
-	bad_args db "Bad arguments.", 10, "Usage: quic <container-rootfs> <executable-in-container> [args...]", 10, 0
+	bad_args db "Bad arguments.", 10, "Usage: quic host|<path-to-netns> <container-rootfs> <executable-in-container> [args...]", 10, 0
 	bad_args_len equ $ - bad_args
 	root db "/", 0
 	proc db "proc", 0
+
 	
 section .text
 global _start
@@ -62,7 +69,7 @@ _wait_for_child:
 	cmp rax, 0
 	jne _bad_exit
 
-_ok_exit:	
+_ok_exit:
     	mov rdi, OK_EXIT
     	jmp _exit
 
@@ -78,8 +85,31 @@ _bad_exit:
 	jmp _exit
 
 _clone:
-	mov rax, SYS_CHROOT
+	;; check if host net should be used
+	mov rdi, [rsp + 16] 	; pointer to netns path or "host"
+	mov rdi, [rdi]		; load first 64bits of string
+	shl rdi, 24		; shift to keep only "host", 0
+
+	;; if "host" is second arg rdi is now set to HOST_CHECK
+	mov rax, HOST_CHECK
+	cmp rdi, rax
+	je _setup_fs
+
+	;; otherwise join netns in argv[1]
+	mov rax, SYS_OPEN
 	mov rdi, [rsp + 16]
+	mov rsi, 0
+	mov r10, 0
+	syscall
+
+	mov rdi, rax
+	mov rax, SYS_SETNS
+	mov rsi, 0
+	syscall
+
+_setup_fs:
+	mov rax, SYS_CHROOT
+	mov rdi, [rsp + 24]
 	syscall
 
 	mov rdi, rax
@@ -105,17 +135,17 @@ _clone:
 	mov rdi, rax
 	cmp rax, 0
 	jne _exit
-	
+
 	mov rax, SYS_EXECVE
-	mov rdi, [rsp + 24]
-	lea rsi, [rsp + 24]
+	mov rdi, [rsp + 32]
+	lea rsi, [rsp + 32]
 
 	mov rdx, [rsp] 		; calculate address to environment array
 	imul rdx, 8
 	add rdx, rsp
 	add rdx, 16
 	lea rdx, [rdx]		; load environment array address
-	
+
 	syscall
 
 _exit:
