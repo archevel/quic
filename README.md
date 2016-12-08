@@ -6,10 +6,10 @@ Note that environment variables specified in the host will be passed along to th
 A simple way to create a usable root filesystem is to use `debootstrap`.
 
 ## Installation
-Ensure you have the installed:
- - `nasm` assembler installed
- - `ld` linker
- - `make` utility program
+Ensure you have installed:
+ - `nasm` - assembler
+ - `ld` - linker
+ - `make` - utility program
 
 Clone repo and run `make` in it. You should now have a binary called `quic` put it somewhere on your `PATH`.
 
